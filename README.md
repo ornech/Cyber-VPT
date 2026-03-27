@@ -1,5 +1,5 @@
 # Cahier des Charges Fonctionnel et Technique (CdCFT)
-## Projet : Système SACP (Sentinel-LRU)
+## Projet : CYBER-VPT (Cyber Vector Predictive Trajectory)
 
 **Périmètre :** Génération d'empreintes dynamiques et corrélation de trajectoires vectorielles basées sur le référentiel MITRE ATT&CK.
 
