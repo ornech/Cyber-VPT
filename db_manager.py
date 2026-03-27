@@ -4,7 +4,7 @@ import uuid
 from mysql.connector import Error
 
 class CyberPathDB:
-    def __init__(self, host='localhost', user='root', password='', database='cyber_path'):
+    def __init__(self, host='localhost', user='admin', password='admin', database='cyber_path'):
         try:
             self.conn = mysql.connector.connect(
                 host=host,

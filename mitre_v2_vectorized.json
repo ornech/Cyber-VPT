@@ -5113,11 +5113,11 @@
         "name": "Command and Scripting Interpreter",
         "description": "Adversaries may abuse command and script interpreters to execute commands, scripts, or binaries. These interfaces and languages provide ways of interacting with computer systems and are a common featu...",
         "v_vector": [
-            0.45,
-            0.1,
-            0.55,
-            0.5,
-            0.3
+            0.8,
+            0.9,
+            0.7,
+            1.0,
+            0.6
         ],
         "status": "auto_vectorized"
     },
