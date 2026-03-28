@@ -1,3 +1,4 @@
+TEST=0
 """
 Vector5D — contrat de domaine du projet CYBER-VPT.
 
