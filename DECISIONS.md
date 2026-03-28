@@ -28,8 +28,12 @@ et `match_score = 1 - normalized_distance`.
   sans assouplir le contrat métier.
 - **`matched_stage`** : restreint aux entiers non négatifs (`int`, booléens
   exclus) pour éviter les ambiguïtés de typage silencieux.
-- **`completion_probability`** : documenté explicitement comme une estimation
-  heuristique, non une preuve juridique d'intention malveillante.
+- **`completion_probability`** : rendu optionnel (`None` par défaut).
+  La sémantique "si renseignée" du contrat C-002 est ainsi reflétée à la fois
+  dans le constructeur (paramètre optionnel) et dans les tests. La validation
+  n'est déclenchée que si la valeur est fournie (non `None`).
+  Documenté comme estimation heuristique, non preuve juridique d'intention
+  malveillante.
 
 ### Alternatives rejetées
 

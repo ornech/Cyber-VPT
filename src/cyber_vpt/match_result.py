@@ -3,10 +3,11 @@ MatchResult — contrat de domaine du projet CYBER-VPT (C-002).
 
 Invariants fondamentaux
 -----------------------
-- raw_distance >= 0
-- normalized_distance ∈ [0, 1]
-- match_score ∈ [0, 1]
+- raw_distance >= 0 et fini (ni NaN ni ±inf)
+- normalized_distance ∈ [0, 1] et fini
+- match_score ∈ [0, 1] et fini
 - match_score = 1 - normalized_distance  (à 1 ULP près)
+- completion_probability, si renseignée, ∈ [0, 1] et fini
 
 Description des champs
 -----------------------
@@ -17,21 +18,29 @@ match_score          : score de correspondance dans [0, 1], égal à
 matched_stage        : indice (entier ≥ 0) de l'étape la mieux alignée
                        dans la séquence de référence.
 completion_probability : fraction d'avancement estimée de l'attaque, dans
-                         [0, 1].  **Avertissement :** il s'agit d'une
-                         estimation heuristique, non d'une preuve juridique
-                         d'intention malveillante.
+                         [0, 1] (optionnel — None si non renseignée).
+                         **Avertissement :** il s'agit d'une estimation
+                         heuristique, non d'une preuve juridique d'intention
+                         malveillante.
 
 Rejets obligatoires
 -------------------
-- raw_distance < 0
-- normalized_distance hors [0, 1]
-- match_score hors [0, 1]
+- raw_distance non fini (NaN, ±inf) ou < 0
+- normalized_distance non fini ou hors [0, 1]
+- match_score non fini ou hors [0, 1]
 - incohérence match_score != 1 - normalized_distance
-- completion_probability hors [0, 1]
 - matched_stage < 0 ou non entier
+- completion_probability renseignée mais non finie ou hors [0, 1]
 
 Exemples valides
 ----------------
+>>> MatchResult(
+...     raw_distance=3.2,
+...     normalized_distance=0.25,
+...     match_score=0.75,
+...     matched_stage=2,
+... )
+
 >>> MatchResult(
 ...     raw_distance=3.2,
 ...     normalized_distance=0.25,
@@ -51,6 +60,7 @@ Exemples invalides
 from __future__ import annotations
 
 import math
+from typing import Optional
 
 # Tolérance pour la vérification match_score == 1 - normalized_distance.
 # Couvre les erreurs d'arrondi flottant standard (IEEE 754).
@@ -63,16 +73,17 @@ class MatchResult:
     Parameters
     ----------
     raw_distance : float
-        Distance DTW brute (≥ 0).
+        Distance DTW brute (≥ 0, finie).
     normalized_distance : float
-        Distance normalisée dans [0, 1].
+        Distance normalisée dans [0, 1] (finie).
     match_score : float
-        Score de correspondance dans [0, 1], doit être égal à
+        Score de correspondance dans [0, 1] (fini), doit être égal à
         ``1 - normalized_distance``.
     matched_stage : int
         Indice (≥ 0) de l'étape la mieux alignée dans le modèle de référence.
-    completion_probability : float
-        Fraction d'avancement estimée de l'attaque, dans [0, 1].
+    completion_probability : float or None, optional
+        Fraction d'avancement estimée de l'attaque, dans [0, 1] (finie).
+        Si non renseignée, vaut ``None``.
         **Avertissement :** il s'agit d'une estimation heuristique, non d'une
         preuve juridique d'intention malveillante.
 
@@ -100,21 +111,24 @@ class MatchResult:
         normalized_distance: float,
         match_score: float,
         matched_stage: int,
-        completion_probability: float,
+        completion_probability: Optional[float] = None,
     ) -> None:
         _validate_raw_distance(raw_distance)
         _validate_unit_interval("normalized_distance", normalized_distance)
         _validate_unit_interval("match_score", match_score)
         _validate_score_coherence(normalized_distance, match_score)
         _validate_matched_stage(matched_stage)
-        _validate_unit_interval("completion_probability", completion_probability)
+        if completion_probability is not None:
+            _validate_unit_interval("completion_probability", completion_probability)
 
         object.__setattr__(self, "raw_distance", float(raw_distance))
         object.__setattr__(self, "normalized_distance", float(normalized_distance))
         object.__setattr__(self, "match_score", float(match_score))
         object.__setattr__(self, "matched_stage", int(matched_stage))
         object.__setattr__(
-            self, "completion_probability", float(completion_probability)
+            self,
+            "completion_probability",
+            float(completion_probability) if completion_probability is not None else None,
         )
 
     def __setattr__(self, name: str, value: object) -> None:
@@ -124,13 +138,15 @@ class MatchResult:
         )
 
     def __repr__(self) -> str:
+        cp = self.completion_probability
+        cp_repr = repr(cp) if cp is not None else "None"
         return (
             f"MatchResult("
             f"raw_distance={self.raw_distance!r}, "
             f"normalized_distance={self.normalized_distance!r}, "
             f"match_score={self.match_score!r}, "
             f"matched_stage={self.matched_stage!r}, "
-            f"completion_probability={self.completion_probability!r})"
+            f"completion_probability={cp_repr})"
         )
 
     def __eq__(self, other: object) -> bool:
@@ -228,14 +244,13 @@ def _to_finite_float(name: str, value: object) -> float:
     Raises
     ------
     TypeError
-        Si la conversion est impossible.
+        Si la conversion est impossible ou si la valeur est None.
     ValueError
         Si la valeur est NaN ou infinie.
     """
     if value is None:
         raise TypeError(
-            f"Le champ '{name}' est absent (None) ; "
-            "tous les champs sont obligatoires."
+            f"Le champ '{name}' est None ; une valeur numérique finie est attendue."
         )
     try:
         fval = float(value)  # type: ignore[arg-type]

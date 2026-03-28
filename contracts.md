@@ -103,7 +103,7 @@ MatchResult = (
   normalized_distance,
   match_score,
   matched_stage,
-  completion_probability
+  completion_probability  -- optionnel (None si non renseignée)
 )
 ```
 
