@@ -1,0 +1,66 @@
+name: governance-guard
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  governance-guard:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Check governance rules
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          changed_src_or_tests=0
+          changed_contracts=0
+          changed_changelog=0
+          changed_decisions=0
+
+          if echo "$CHANGED" | grep -Eq '^(src/|tests/)'; then
+            changed_src_or_tests=1
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^contracts\.md$'; then
+            changed_contracts=1
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^CHANGELOG\.md$'; then
+            changed_changelog=1
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^DECISIONS\.md$'; then
+            changed_decisions=1
+          fi
+
+          if [ "$changed_src_or_tests" -eq 1 ] && [ "$changed_contracts" -ne 1 ]; then
+            echo "ERREUR: src/ ou tests/ changés sans mise à jour de contracts.md"
+            exit 1
+          fi
+
+          if [ "$changed_contracts" -eq 1 ] && [ "$changed_changelog" -ne 1 ]; then
+            echo "ERREUR: contracts.md changé sans mise à jour de CHANGELOG.md"
+            exit 1
+          fi
+
+          if [ "$changed_contracts" -eq 1 ] && [ "$changed_decisions" -ne 1 ]; then
+            echo "ERREUR: contracts.md changé sans mise à jour de DECISIONS.md"
+            exit 1
+          fi
+
+          echo "OK: governance rules respected."

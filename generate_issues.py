@@ -2,21 +2,14 @@
 import os
 import sys
 import re
+import json
 import argparse
 import requests
-from typing import List, Dict, Optional
 
 API_URL = "https://api.github.com"
 
 
 def parse_repo(repo_arg: str):
-    """
-    Accepte:
-      - owner/repo
-      - https://github.com/owner/repo
-      - https://github.com/owner/repo.git
-    Retourne (owner, repo)
-    """
     s = repo_arg.strip()
 
     m = re.match(r"^https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", s)
@@ -39,7 +32,7 @@ def github_headers(token: str):
     }
 
 
-def fetch_existing_issue_titles(owner: str, repo: str, token: str) -> set:
+def fetch_existing_issue_titles(owner, repo, token):
     headers = github_headers(token)
     titles = set()
     page = 1
@@ -58,8 +51,8 @@ def fetch_existing_issue_titles(owner: str, repo: str, token: str) -> set:
             raise RuntimeError("403 Forbidden: rate limit ou droits insuffisants.")
         if r.status_code == 404:
             raise RuntimeError("404 Not Found: repo inexistant ou token sans accès.")
-        r.raise_for_status()
 
+        r.raise_for_status()
         data = r.json()
         if not data:
             break
@@ -74,20 +67,13 @@ def fetch_existing_issue_titles(owner: str, repo: str, token: str) -> set:
     return titles
 
 
-def create_issue(owner: str, repo: str, token: str, title: str, body: str,
-                 labels: Optional[List[str]] = None):
+def create_issue(owner, repo, token, title, body):
     headers = github_headers(token)
-    payload = {
-        "title": title,
-        "body": body,
-    }
-    if labels:
-        payload["labels"] = labels
 
     r = requests.post(
         f"{API_URL}/repos/{owner}/{repo}/issues",
         headers=headers,
-        json=payload,
+        json={"title": title, "body": body},
         timeout=30,
     )
 
@@ -104,19 +90,12 @@ def create_issue(owner: str, repo: str, token: str, title: str, body: str,
     return r.json()
 
 
-def parse_todo_md(path: str) -> List[Dict]:
+def parse_todo_md(path: str):
     """
-    Regroupe les tâches non cochées par sous-section ###.
-    Si une section ## contient directement des tâches sans ###,
-    elle devient elle-même une issue.
-
-    Retourne une liste d'objets:
-    {
-      "title": "...",
-      "section": "...",
-      "subsection": "... or None",
-      "items": ["...", "..."]
-    }
+    Règle:
+    - chaque sous-section ### devient une issue
+    - les lignes - [ ] deviennent la checklist de l'issue
+    - les sections sans ### sont ignorées
     """
     h2_re = re.compile(r"^##\s+(.*)")
     h3_re = re.compile(r"^###\s+(.*)")
@@ -125,15 +104,22 @@ def parse_todo_md(path: str) -> List[Dict]:
 
     current_h2 = None
     current_h3 = None
+    current_items = []
 
-    groups: List[Dict] = []
-    current_group = None
+    groups = []
 
-    def flush_group():
-        nonlocal current_group
-        if current_group and current_group["items"]:
-            groups.append(current_group)
-        current_group = None
+    def flush():
+        nonlocal current_h3, current_items
+        if current_h3 and current_items:
+            groups.append(
+                {
+                    "section": current_h2,
+                    "subsection": current_h3,
+                    "items": current_items[:],
+                }
+            )
+        current_h3 = None
+        current_items = []
 
     with open(path, "r", encoding="utf-8") as f:
         for raw_line in f:
@@ -141,137 +127,59 @@ def parse_todo_md(path: str) -> List[Dict]:
 
             m2 = h2_re.match(line)
             if m2:
-                flush_group()
+                flush()
                 current_h2 = m2.group(1).strip()
-                current_h3 = None
                 continue
 
             m3 = h3_re.match(line)
             if m3:
-                flush_group()
+                flush()
                 current_h3 = m3.group(1).strip()
-                current_group = {
-                    "section": current_h2,
-                    "subsection": current_h3,
-                    "items": [],
-                }
                 continue
 
-            m_unchecked = unchecked_re.match(line)
-            if m_unchecked:
-                item = m_unchecked.group(1).strip()
-
-                if current_h3 is not None:
-                    if current_group is None:
-                        current_group = {
-                            "section": current_h2,
-                            "subsection": current_h3,
-                            "items": [],
-                        }
-                    current_group["items"].append(item)
-                elif current_h2 is not None:
-                    if current_group is None:
-                        current_group = {
-                            "section": current_h2,
-                            "subsection": None,
-                            "items": [],
-                        }
-                    current_group["items"].append(item)
-                continue
-
-            # on ignore les tâches déjà cochées
             if checked_re.match(line):
                 continue
 
-    flush_group()
+            m_unchecked = unchecked_re.match(line)
+            if m_unchecked and current_h3:
+                current_items.append(m_unchecked.group(1).strip())
 
-    # post-traitement du titre
-    result = []
-    for g in groups:
-        if g["subsection"]:
-            issue_title = g["subsection"]
-        else:
-            issue_title = g["section"] or "TODO"
-
-        result.append({
-            "title": issue_title,
-            "section": g["section"],
-            "subsection": g["subsection"],
-            "items": g["items"],
-        })
-
-    return result
+    flush()
+    return groups
 
 
-def build_issue_body(group: Dict, source_path: str, labels_hint: Optional[List[str]] = None) -> str:
+def build_issue_title(group, prefix):
+    # Exemple: [TODO] 1.1 — Vector5D
+    return f"{prefix} {group['subsection']}".strip()
+
+
+def build_issue_body(group, source_path):
     lines = []
     lines.append("## Source")
     lines.append(f"- Fichier: `{source_path}`")
     if group["section"]:
         lines.append(f"- Section: `{group['section']}`")
-    if group["subsection"]:
-        lines.append(f"- Sous-section: `{group['subsection']}`")
+    lines.append(f"- Sous-section: `{group['subsection']}`")
     lines.append("")
-    lines.append("## Travail à réaliser")
+    lines.append("## Tâches")
     for item in group["items"]:
         lines.append(f"- [ ] {item}")
     lines.append("")
     lines.append("## Critère de clôture")
-    lines.append("- Toutes les cases de cette issue sont traitées.")
-    lines.append("- Les décisions structurantes sont tracées dans un fichier versionné si nécessaire.")
-    lines.append("- Les tests ou validations minimales existent si le sujet porte sur un contrat, une formule ou un comportement.")
-    if labels_hint:
-        lines.append("")
-        lines.append("## Étiquettes suggérées")
-        for label in labels_hint:
-            lines.append(f"- `{label}`")
+    lines.append("- Toutes les cases de cette sous-section sont traitées.")
+    lines.append("- Les décisions structurantes sont tracées si nécessaire.")
+    lines.append("- Les tests ou validations attendus existent lorsque le sujet l'exige.")
     return "\n".join(lines)
-
-
-def infer_labels(group: Dict) -> List[str]:
-    text = " ".join(
-        [group.get("section") or "", group.get("subsection") or "", *group.get("items", [])]
-    ).lower()
-
-    labels = ["todo"]
-
-    if "contrat" in text:
-        labels.append("contracts")
-    if "mitre" in text:
-        labels.append("mitre")
-    if "vector" in text or "5d" in text:
-        labels.append("vectorization")
-    if "test" in text:
-        labels.append("tests")
-    if "calibration" in text or "seuil" in text:
-        labels.append("calibration")
-    if "baseline" in text or "matching" in text or "dtw" in text:
-        labels.append("matching")
-    if "archiv" in text or "mahalanobis" in text:
-        labels.append("archive")
-    if "corpus" in text or "données" in text:
-        labels.append("dataset")
-    if "traçabilité" in text or "révision" in text:
-        labels.append("traceability")
-
-    # dédoublonnage en conservant l'ordre
-    seen = set()
-    out = []
-    for x in labels:
-        if x not in seen:
-            seen.add(x)
-            out.append(x)
-    return out
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", required=True, help="owner/repo ou https://github.com/owner/repo")
     parser.add_argument("--todo", default="TODO.md", help="chemin vers TODO.md")
-    parser.add_argument("--prefix", default="[TODO]", help="préfixe du titre d'issue")
-    parser.add_argument("--dry-run", action="store_true", help="n'écrit rien sur GitHub")
+    parser.add_argument("--prefix", default="[TODO]", help="préfixe des titres d'issues")
+    parser.add_argument("--dry-run", action="store_true", help="n'envoie rien à GitHub")
     parser.add_argument("--skip-existing", action="store_true", help="ignore les titres déjà présents")
-    parser.add_argument("--no-labels", action="store_true", help="ne pas proposer/appliquer de labels")
+    parser.add_argument("--dump-json", help="écrit aussi les groupes extraits dans un JSON")
     args = parser.parse_args()
 
     token = os.getenv("GITHUB_TOKEN")
@@ -288,7 +196,11 @@ def main():
 
     groups = parse_todo_md(args.todo)
     if not groups:
-        sys.exit("Aucune tâche non cochée détectée dans le TODO.")
+        sys.exit("Aucune sous-section ### avec tâches non cochées détectée.")
+
+    if args.dump_json:
+        with open(args.dump_json, "w", encoding="utf-8") as f:
+            json.dump(groups, f, indent=2, ensure_ascii=False)
 
     existing_titles = set()
     if args.skip_existing:
@@ -298,9 +210,8 @@ def main():
     skipped = 0
 
     for group in groups:
-        title = f"{args.prefix} {group['title']}".strip()
-        labels = [] if args.no_labels else infer_labels(group)
-        body = build_issue_body(group, args.todo, labels_hint=None)
+        title = build_issue_title(group, args.prefix)
+        body = build_issue_body(group, args.todo)
 
         if args.skip_existing and title in existing_titles:
             print(f"SKIP  {title} (déjà existante)")
@@ -310,13 +221,12 @@ def main():
         if args.dry_run:
             print("=" * 80)
             print(title)
-            print("- labels:", ", ".join(labels) if labels else "(aucun)")
             print(body)
             print()
             created += 1
             continue
 
-        issue = create_issue(owner, repo, token, title, body, labels=labels)
+        issue = create_issue(owner, repo, token, title, body)
         print(f"OK    #{issue['number']} {issue['title']}")
         created += 1
 
