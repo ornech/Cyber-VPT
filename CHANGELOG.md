@@ -4,6 +4,14 @@
 
 ### Ajouté
 
+- **C-003 — ArchivedProfile** : implémentation de la structure
+  `ArchivedProfile` immuable (`src/cyber_vpt/archived_profile.py`).
+  Valide au constructeur : `mu` de type `Vector5D`, `sigma` de forme `5x5`
+  finie/symétrique/positive semi-définie (valeurs propres nulles autorisées),
+  `n_points >= 2`, et cohérence temporelle `first_seen <= last_seen`.
+- Tests de contrat `tests/test_archived_profile.py` couvrant les cas valides,
+  les rejets obligatoires et l'immutabilité.
+
 - **C-002 — MatchResult** : implémentation de la structure `MatchResult` immuable
   (`src/cyber_vpt/match_result.py`). Valide au constructeur :
   `raw_distance ≥ 0`, `normalized_distance ∈ [0,1]`, `match_score ∈ [0,1]`,
@@ -12,6 +20,9 @@
   les rejets obligatoires et les bornes exactes.
 
 ### Modifié
+
+- Export package : ajout de `ArchivedProfile` dans
+  `src/cyber_vpt/__init__.py` (`__all__`).
 
 - **C-002 — completion_probability** : champ optionnel dans `MatchResult`,
   valeur par défaut `None` si non renseigné. La validation (appartenance à

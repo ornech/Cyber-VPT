@@ -47,3 +47,47 @@ et `match_score = 1 - normalized_distance`.
 Toute instance de `MatchResult` satisfait par construction les invariants
 de C-002. Les composants consommateurs (`AlertEngine`, etc.) peuvent s'y
 fier sans vérification supplémentaire.
+
+## D-002 — ArchivedProfile immuable avec validation stricte au constructeur (C-003)
+
+**Date :** 2026-03-28
+**Statut :** acceptée
+
+### Contexte
+
+Le contrat C-003 impose un profil archivé statistique robuste :
+`mu` de type `Vector5D`, `sigma` de forme `5x5` finie, symétrique et
+positive semi-définie, `n_points >= 2`, et cohérence temporelle
+`first_seen <= last_seen`.
+
+### Décision
+
+`ArchivedProfile` est implémentée comme une classe immuable en Python pur,
+avec validation exhaustive au constructeur :
+
+- **Immuabilité** : `__slots__` + `object.__setattr__` au constructeur +
+  `__setattr__` bloquant toute mutation ultérieure.
+- **Type de `mu`** : `mu` doit être une instance de `Vector5D` (et non un tuple
+  ou une séquence implicite), afin de réutiliser explicitement C-001.
+- **Validation de `sigma`** : conversion en `ndarray` float puis vérification de
+  la forme `(5,5)`, de la finitude (`NaN`/`±inf` interdits), de la symétrie et
+  de la positive semi-définition via `eigvalsh`.
+- **Tolérances numériques** : des tolérances strictes (`1e-12`) sont appliquées
+  pour la symétrie et la PSD afin de ne pas rejeter des matrices valides à cause
+  d'artefacts flottants.
+- **Règle PSD** : les valeurs propres nulles sont explicitement autorisées.
+- **Validation métier restante** : `n_points` entier (booléens exclus) et
+  `n_points >= 2`, puis `first_seen` et `last_seen` en `datetime` avec
+  `first_seen <= last_seen`.
+
+### Alternatives rejetées
+
+- Accepter un `mu` séquentiel puis le convertir implicitement : rejeté pour
+  éviter la duplication partielle de C-001 et garder une frontière claire.
+- Validation différée (post-construction) : rejetée car elle autorise des états
+  invalides temporaires.
+
+### Conséquences
+
+Toute instance d'`ArchivedProfile` est valide par construction et directement
+consommable par les composants aval, sans ajouter de logique hors périmètre.
