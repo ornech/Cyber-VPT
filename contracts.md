@@ -95,7 +95,7 @@ Invalides :
 
 `MatchResult` décrit le résultat d'un rapprochement entre une trajectoire observée et un modèle de référence.
 
-Forme minimale :
+Forme :
 
 ```text
 MatchResult = (
@@ -141,7 +141,6 @@ Un `MatchResult` doit être rejeté si :
 
 * `raw_distance` vaut `NaN` ;
 * `raw_distance` vaut `+inf` ou `-inf` ;
-* `raw_distance < 0` ;
 
 * `normalized_distance` vaut `NaN` ;
 * `normalized_distance` vaut `+inf` ou `-inf` ;
