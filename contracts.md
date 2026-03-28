@@ -227,11 +227,14 @@ où :
 ```text
 μ ∈ [0,1]^5
 σ ∈ R^(5x5)
+σ finie (aucune valeur NaN, +inf, -inf)
 σ = σ^T
 σ positive semi-définie
 n_points >= 2
 first_seen <= last_seen
 ```
+
+Une valeur propre nulle de `σ` est autorisée.
 
 ### 3.3. Rejets obligatoires
 
@@ -239,10 +242,12 @@ Un `ArchivedProfile` doit être rejeté si :
 
 * `μ` viole le contrat `Vector5D` ;
 * `σ` n'est pas de taille `5x5` ;
+* `σ` contient une valeur non finie ;
 * `σ` n'est pas symétrique ;
 * `σ` n'est pas positive semi-définie ;
 * `n_points < 2` ;
-* `first_seen > last_seen`.
+* `first_seen > last_seen` ;
+* `first_seen` ou `last_seen` n'est pas un `datetime`.
 
 ### 3.4. Règle terminologique
 
@@ -268,6 +273,7 @@ PCA
 
 * rejet d'une matrice non symétrique ;
 * rejet d'une matrice non positive semi-définie ;
+* rejet d'une matrice non finie ;
 * rejet d'un `n_points = 1` ;
 * rejet d'une borne temporelle inversée ;
 * acceptation d'un profil statistique valide.
