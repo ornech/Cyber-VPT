@@ -3,6 +3,7 @@
 ## Project overview
 
 **CYBER-VPT** (Cyber Vector Predictive Trajectory) detects cyber attacks predictively by:
+
 1. Projecting raw security events into a 5-dimensional vector space `[0,1]^5`.
 2. Chaining those vectors into per-fingerprint trajectories.
 3. Comparing live trajectories against MITRE ATT&CK reference models using DTW.
@@ -54,14 +55,14 @@ tests/                            # Unit tests  (EMPTY — to be implemented)
 
 All modules live under `src/`. Implement in this order to respect dependencies:
 
-| Layer | Classes | Responsibility |
-|---|---|---|
-| **1 · Ingestion** | `RawEvent`, `Fingerprint`, `FingerprintResolver`, `FingerprintIndex`, `BloomFilter`, `CountMinSketch` | Parse raw events; produce stable, hash-based fingerprints |
-| **2 · Vectorisation** | `ActionSemantics`, `Vector5D`, `Vectorizer` | Map any event to a point in `[0,1]^5` |
-| **3 · Trajectories** | `Commit`, `Trajectory`, `TrajectoryStore` | Maintain ordered, hash-chained sequences per fingerprint (LRU two-tier: RAM <-> archive) |
-| **4 · Matching** | `TechniqueModel`, `MitreRepository`, `DTWMatcher`, `MatchResult` | DTW distance against MITRE ATT&CK sequences; output `normalized_distance` in `[0,1]` |
-| **5 · Alerting** | `AlertEngine`, `AlertLevel` | Apply threshold policy to `MatchResult`; emit alerts |
-| **6 · Archive** | `ArchivedProfile`, `ArchiveManager` | Compress inactive trajectories to `(mu, Sigma, n, first_seen, last_seen)` via PCA |
+| Layer                 | Classes                                                                                               | Responsibility                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **1 · Ingestion**     | `RawEvent`, `Fingerprint`, `FingerprintResolver`, `FingerprintIndex`, `BloomFilter`, `CountMinSketch` | Parse raw events; produce stable, hash-based fingerprints                                |
+| **2 · Vectorisation** | `ActionSemantics`, `Vector5D`, `Vectorizer`                                                           | Map any event to a point in `[0,1]^5`                                                    |
+| **3 · Trajectories**  | `Commit`, `Trajectory`, `TrajectoryStore`                                                             | Maintain ordered, hash-chained sequences per fingerprint (LRU two-tier: RAM <-> archive) |
+| **4 · Matching**      | `TechniqueModel`, `MitreRepository`, `DTWMatcher`, `MatchResult`                                      | DTW distance against MITRE ATT&CK sequences; output `normalized_distance` in `[0,1]`     |
+| **5 · Alerting**      | `AlertEngine`, `AlertLevel`                                                                           | Apply threshold policy to `MatchResult`; emit alerts                                     |
+| **6 · Archive**       | `ArchivedProfile`, `ArchiveManager`                                                                   | Compress inactive trajectories to `(mu, Sigma, n, first_seen, last_seen)` via PCA        |
 
 **Cross-cutting rule:** `DTWMatcher` is pure computation (no policy). `AlertEngine` is pure policy (no arithmetic). Never merge the two.
 
@@ -83,13 +84,13 @@ These must be preserved by every function, test, and data class:
 
 ## 5D vector dimension reference
 
-| Dim | Name | Formula | Bounds |
-|---|---|---|---|
-| `d1` | Criticality | `W(resource) / W_max` | `[0, 1]` |
-| `d2` | Entropy | `H(payload) / 8` (Shannon, byte distribution) | `[0, 1]` |
-| `d3` | Frequency | sigmoid of `1/delta_t` relative to local history | `[0, 1]` |
-| `d4` | Intensity | weight of HTTP method / protocol | `[0, 1]` |
-| `d5` | Rarity | bounded score via Count-Min Sketch | `[0, 1]` |
+| Dim  | Name        | Formula                                          | Bounds   |
+| ---- | ----------- | ------------------------------------------------ | -------- |
+| `d1` | Criticality | `W(resource) / W_max`                            | `[0, 1]` |
+| `d2` | Entropy     | `H(payload) / 8` (Shannon, byte distribution)    | `[0, 1]` |
+| `d3` | Frequency   | sigmoid of `1/delta_t` relative to local history | `[0, 1]` |
+| `d4` | Intensity   | weight of HTTP method / protocol                 | `[0, 1]` |
+| `d5` | Rarity      | bounded score via Count-Min Sketch               | `[0, 1]` |
 
 ---
 
@@ -98,7 +99,7 @@ These must be preserved by every function, test, and data class:
 - **DTW over Euclidean distance:** handles "low and slow" attacks where timing varies significantly across replays.
 - **Bloom filter fast-path:** O(1) fingerprint existence check before accessing `FingerprintIndex`.
 - **Count-Min Sketch for `d5`:** gives a bounded, probabilistic estimate of fingerprint frequency without unbounded memory growth.
-- **LRU two-tier storage:** active trajectories in RAM at full resolution; inactive ones compressed to `ArchivedProfile` objects via PCA.
+- **LRU two-tier storage:** active trajectories in RAM at full resolution; inactive ones summarized into `ArchivedProfile` statistical objects, without PCA unless principal axes and explained variance are explicitly stored.
 - **`completion_probability` caveat:** this field in `MatchResult` is an _advance fraction estimate_, not a legal proof of attack intent. Document this wherever the field is used.
 
 ---
