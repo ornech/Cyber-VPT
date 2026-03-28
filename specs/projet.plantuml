@@ -1,0 +1,179 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam shadowing false
+
+package "Ingestion & Identité" {
+    class RawEvent {
+        + timestamp : DateTime
+        + source_ip : String
+        + protocol : String
+        + payload : String
+        + resource : String
+        + action : String
+    }
+
+    class Fingerprint {
+        + id_emp : String
+        + ja3 : String
+        + os_fingerprint : String
+        + header_entropy : Float
+    }
+
+    class FingerprintResolver {
+        + resolve(e: RawEvent) : Fingerprint
+    }
+
+    class FingerprintIndex {
+        + bind(id_emp: String, ip: String)
+        + resolve_ip(id_emp: String) : String
+        + exists(id_emp: String) : Boolean
+    }
+
+    class BloomFilter {
+        + might_contain(id_emp: String) : Boolean
+        + add(id_emp: String)
+    }
+
+    class CountMinSketch {
+        + estimate_frequency(key: String) : Int
+        + update(key: String)
+    }
+}
+
+package "Vectorisation 5D" {
+    class ActionSemantics {
+        + protocol : String
+        + verb : String
+        + permission : String
+        + direction : String
+    }
+
+    class Vector5D {
+        + d1 : Float
+        + d2 : Float
+        + d3 : Float
+        + d4 : Float
+        + d5 : Float
+        + as_array() : Float[5]
+        + validate_unit_cube() : Boolean
+    }
+
+    class Vectorizer {
+        - rarity_sketch : CountMinSketch
+        + compute_d1_criticality(resource: String) : Float
+        + compute_d2_entropy(payload: String) : Float
+        + compute_d3_frequency(delta_t: Float, freq_state: Float) : Float
+        + compute_d4_intensity(a: ActionSemantics) : Float
+        + compute_d5_rarity(fp: Fingerprint) : Float
+        + build_vector(e: RawEvent, fp: Fingerprint, a: ActionSemantics) : Vector5D
+    }
+}
+
+package "Trajectoires Actives" {
+    class Commit {
+        + previous_hash : String
+        + vector : Vector5D
+        + timestamp : DateTime
+        + cumulative_score : Float
+        + compute_hash() : String
+    }
+
+    class Trajectory {
+        + id_emp : String
+        + is_active : Boolean
+        + add_commit(c: Commit)
+        + get_sequence() : List<Vector5D>
+        + get_last_timestamp() : DateTime
+    }
+
+    class TrajectoryStore {
+        + upsert_commit(id_emp: String, c: Commit)
+        + get_active(id_emp: String) : Trajectory
+        + archive_if_needed(id_emp: String)
+    }
+}
+
+package "Référentiel MITRE & Matching" {
+    class TechniqueModel {
+        + tid : String
+        + name : String
+        + ideal_sequence : List<Vector5D>
+        + dimension_weights : Float[5]
+        + source_version : String
+        + confidence_level : Float
+    }
+
+    class MitreRepository {
+        + get_model(tid: String) : TechniqueModel
+        + list_models() : List<TechniqueModel>
+    }
+
+    class MatchResult {
+        + normalized_distance : Float
+        + match_score : Float
+        + matched_stage : Int
+        + completion_probability : Float
+    }
+
+    class DTWMatcher {
+        + calculate_normalized_distance(t_user: Trajectory, model: TechniqueModel) : Float
+        + build_result(t_user: Trajectory, model: TechniqueModel) : MatchResult
+    }
+
+    class AlertEngine {
+        + warning_threshold : Float
+        + critical_threshold : Float
+        + evaluate(r: MatchResult) : AlertLevel
+    }
+
+    enum AlertLevel {
+        NONE
+        WATCH
+        CRITICAL
+    }
+}
+
+package "Archivage Statistique" {
+    class ArchivedProfile {
+        + mu : Vector5D
+        + sigma : Matrix
+        + n_points : Int
+        + first_seen : DateTime
+        + last_seen : DateTime
+        + mahalanobis_distance(v: Vector5D) : Float
+    }
+
+    class ArchiveManager {
+        + summarize_distribution(t: Trajectory) : ArchivedProfile
+        + restore_or_split(p: ArchivedProfile, v: Vector5D) : Boolean
+    }
+}
+
+' --- Relations principales ---
+FingerprintResolver --> RawEvent
+FingerprintResolver --> Fingerprint
+FingerprintIndex --> BloomFilter
+Vectorizer --> CountMinSketch
+Vectorizer ..> Vector5D : "crée"
+Vectorizer --> Fingerprint
+Vectorizer --> ActionSemantics
+
+Commit *-- "1" Vector5D
+Trajectory *-- "1..*" Commit
+TrajectoryStore o-- "0..*" Trajectory
+
+MitreRepository o-- "0..*" TechniqueModel
+TechniqueModel *-- "1..*" Vector5D
+
+DTWMatcher --> Trajectory
+DTWMatcher --> TechniqueModel
+DTWMatcher ..> MatchResult : "produit"
+AlertEngine --> MatchResult
+
+ArchiveManager ..> ArchivedProfile : "produit"
+TrajectoryStore --> ArchiveManager
+TrajectoryStore o-- "0..*" ArchivedProfile
+
+FingerprintIndex --> TrajectoryStore : "résout id_emp"
+@enduml
