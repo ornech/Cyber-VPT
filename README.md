@@ -16,13 +16,13 @@ Développer un moteur capable de :
 ### 2. Spécification de la Vectorisation (Espace $\mathbb{R}^5$)
 Chaque action est projetée dans un espace vectoriel $V_a = [d_1, d_2, d_3, d_4, d_5]$ où chaque dimension est normalisée entre 0 et 1.
 
-| Dim       | Nom           | Description / Calcul                                         |
-| :-------- | :------------ | :----------------------------------------------------------- |
-| **$d_1$** | **Criticité** | Poids $W_{res}$ de la ressource (ex: `/admin` vs `/img`).    |
-| **$d_2$** | **Entropie**  | Entropie de Shannon du payload (Détection d'obfuscation).    |
-| **$d_3$** | **Fréquence** | Inverse du délai temporel ($1/\Delta t$) entre deux actions. |
-| **$d_4$** | **Intensité** | Poids lié à la méthode/protocole (GET, POST, etc.).          |
-| **$d_5$** | **Rareté**    | Score d'unicité de l'empreinte : $\log(\frac{N}{n+1})$.      |
+| Dim       | Nom           | Description / Calcul                                                                                                          |
+| :-------- | :------------ | :---------------------------------------------------------------------------------------------------------------------------- |
+| **$d_1$** | **Criticité** | Poids $W_{res}$ de la ressource (ex: `/admin` vs `/img`).                                                                     |
+| **$d_2$** | **Entropie**  | Entropie de Shannon normalisée des seuls champs observés en clair et explicitement retenus par type d'événement ou de source. |
+| **$d_3$** | **Fréquence** | Inverse du délai temporel ($1/\Delta t$) entre deux actions.                                                                  |
+| **$d_4$** | **Intensité** | Poids lié à la méthode/protocole (GET, POST, etc.).                                                                           |
+| **$d_5$** | **Rareté**    | Score d'unicité de l'empreinte : $\log(\frac{N}{n+1})$.                                                                       |
 
 > **Note sur $d_5$ :** Agit comme un amplificateur de signal faible. Une empreinte rare (nouveau JA3, User-Agent inhabituel) augmente mécaniquement la distance du vecteur, facilitant la détection d'anomalies.
 
