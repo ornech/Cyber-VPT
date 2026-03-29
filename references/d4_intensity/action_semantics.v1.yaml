@@ -1,0 +1,66 @@
+table_id: d4_action_semantics
+version: v1
+status: provisional
+scope: CYBER-VPT d4 action semantics schema and examples
+owner: CYBER-VPT
+
+model_definition:
+  required_fields:
+    - protocol
+    - verb
+    - permission
+    - direction
+    - operational_capability
+    - notes
+    - status
+  field_semantics:
+    protocol: protocol or action family identifier
+    verb: native action label from the source vocabulary
+    permission: required or effective permission level
+    direction: action direction relative to target state
+    operational_capability: mapped capability class from common d4 grid
+    notes: documentary context and caveats
+    status: lifecycle status of the mapping entry
+
+capability_grid:
+  - code: OBSERVE_READ
+    description: observe or read without target state modification
+  - code: CREATE_DEPOSIT
+    description: create or deposit new artifact/record/state element
+  - code: MODIFY_WRITE
+    description: modify or write existing state
+  - code: DELETE_STRONG_ALTER
+    description: delete or strongly alter state with durable impact
+  - code: CONTROL_EXECUTE
+    description: execute or change control of target behavior
+
+examples:
+  - protocol: http
+    verb: GET
+    permission: read
+    direction: inbound_to_service
+    operational_capability: OBSERVE_READ
+    notes: remains read unless observed side effect changes target state
+    status: candidate
+
+  - protocol: filesystem
+    verb: WRITE_FILE
+    permission: write
+    direction: actor_to_target
+    operational_capability: MODIFY_WRITE
+    notes: benign intent does not change capability class
+    status: candidate
+
+  - protocol: authz
+    verb: GRANT_ROLE
+    permission: admin
+    direction: policy_to_target_identity
+    operational_capability: CONTROL_EXECUTE
+    notes: classify on effective control capability, not verb alone
+    status: candidate
+
+method_constraints:
+  - classify_by_observable_effect_not_native_verb_only
+  - sensitive_read_remains_observe_read
+  - benign_write_remains_modify_write
+  - high_d4_does_not_imply_attack_by_itself

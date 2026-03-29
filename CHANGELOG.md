@@ -4,6 +4,25 @@
 
 ### Ajouté
 
+- **Issue #7 — d4 intensite (documentaire + donnees)** : ajout du dossier
+  `references/d4_intensity/` avec une specification versionnee
+  `d4_intensity_spec.v1.md`, une definition explicite de `ActionSemantics`
+  dans `action_semantics.v1.yaml`, et un mapping initial par protocole dans
+  `protocol_mappings.v1.yaml`.
+- La definition normative retenue pour `d4` est explicitee : `d4` mesure la
+  capacite operatoire observable (transformer, controler, detruire) et ne
+  mesure ni danger, ni intention, ni malignite.
+- La regle methodologique est figee : classer une action selon son effet
+  operatoire observable sur la cible, et non selon son verbe natif seul
+  (incluant les cas `GET` HTTP a effet de bord et changement de droits).
+- Le champ `d4_hint` est documente comme **provisoire**, **ordinal**,
+  **documentaire**, **non calibre empiriquement**, et **non suffisant a lui
+  seul pour conclure a une attaque**.
+- Les cas ambigus obligatoires sont traces comme dependants du contexte
+  (lecture massive, ecriture benigne, suppression legitime, creation
+  automatique legitime, execution administrative normale, changement de droits
+  attendu en maintenance), sans surinterpretation artificielle.
+
 - **Issue #6 — d3 dynamique temporelle (documentaire + données)** : ajout du
   dossier `references/d3_temporal/` avec une spécification versionnée
   `d3_temporal_spec.v1.md` et une table de profils

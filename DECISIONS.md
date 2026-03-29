@@ -239,3 +239,64 @@ Les choix structurants de `v1` sont les suivants :
   documentée.
 - Toute évolution normative ultérieure devra passer par une nouvelle version de
   fichiers (`v2`, `v3`, ...), sans réécriture silencieuse de `v1`.
+
+## D-006 — Referentiel versionne de d4 intensite operatoire (issue #7)
+
+**Date :** 2026-03-29
+**Statut :** acceptee
+
+### Contexte
+
+La dimension `d4` (intensite) etait decrite a haut niveau, sans artefact
+versionne fixant a la fois :
+- la definition normative,
+- la grille commune inter-protocoles,
+- la structure de `ActionSemantics`,
+- le mapping initial protocole -> capacite,
+- le traitement methodologique des cas ambigus.
+
+L'issue #7 impose un livrable strictement documentaire/data, sans
+implementation runtime, sans logique DTW, sans logique MITRE detaillee,
+sans modification de `src/`, `tests/` ou `contracts.md`.
+
+### Decision
+
+Adopter une reference versionnee dediee dans `references/d4_intensity/` :
+
+- `d4_intensity_spec.v1.md` : specification normative de `d4`.
+- `action_semantics.v1.yaml` : definition explicite des champs
+  `protocol`, `verb`, `permission`, `direction`, `operational_capability`,
+  `notes`, `status`.
+- `protocol_mappings.v1.yaml` : mapping initial par protocoles/familles.
+- `README.md` : regles de perimetre et de versionnement de la reference `d4`.
+
+Choix normatifs structurants de `v1` :
+
+- `d4` mesure la **capacite operatoire observable** a transformer, controler ou
+  detruire l'etat cible ; il ne mesure ni danger, ni intention, ni malignite.
+- Une action est classee selon son **effet operatoire observable sur la cible**,
+  et non selon son verbe natif seul.
+- Exemples methodologiques obligatoires :
+  - un `GET` HTTP avec effet de bord applicatif n'est pas automatiquement une
+    simple lecture,
+  - un changement de droits est classe selon la capacite de controle
+    effectivement observee.
+- Le champ `d4_hint` est explicitement defini comme **provisoire**,
+  **ordinal**, **documentaire**, **non calibre empiriquement** et **non
+  suffisant a lui seul pour conclure a une attaque**.
+
+### Alternatives rejetees
+
+- Introduire un algorithme executable de calcul `d4` : rejete (hors perimetre).
+- Introduire un chargement runtime des tables : rejete (hors perimetre).
+- Coupler `d4` a DTW, MITRE detaille, matching ou alerting : rejete.
+- Modifier `src/`, `tests/` ou `contracts.md` : rejete.
+
+### Consequences
+
+- `d4` dispose d'un referentiel versionne, tracable et portable entre
+  protocoles.
+- Les cas ambigus restent documentes comme ambigus (dependants du contexte),
+  sans surinterpretation artificielle.
+- Toute evolution normative ulterieure devra creer des fichiers `v2+`, sans
+  reecriture silencieuse de `v1`.

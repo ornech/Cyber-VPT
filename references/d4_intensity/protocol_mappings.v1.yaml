@@ -1,0 +1,138 @@
+table_id: d4_protocol_mappings
+version: v1
+status: provisional
+scope: CYBER-VPT d4 protocol-to-capability projection
+owner: CYBER-VPT
+
+d4_hint_policy:
+  type: ordinal_documentary_hint
+  calibration_status: not_empirically_calibrated
+  provisional: true
+  attack_conclusion_rule: not_sufficient_alone
+  anchors:
+    OBSERVE_READ: 0.20
+    CREATE_DEPOSIT: 0.40
+    MODIFY_WRITE: 0.60
+    DELETE_STRONG_ALTER: 0.80
+    CONTROL_EXECUTE: 1.00
+
+method_rule:
+  primary_rule: classify_by_observable_effect_on_target
+  anti_pattern: do_not_classify_by_native_verb_alone
+  required_examples:
+    - http_get_with_side_effect_must_not_auto_map_to_observe_read
+    - rights_change_must_map_by_effective_control_capability
+
+mappings:
+  - protocol: http
+    native_action: GET
+    mapped_capability: OBSERVE_READ
+    d4_hint: 0.20
+    ambiguities:
+      - may trigger side effects in application logic
+    notes: if side effect is observed, remap by effective target impact
+    status: candidate
+
+  - protocol: http
+    native_action: POST_CREATE
+    mapped_capability: CREATE_DEPOSIT
+    d4_hint: 0.40
+    ambiguities:
+      - can become MODIFY_WRITE depending on endpoint semantics
+    notes: map by observed state effect, not route naming convention
+    status: candidate
+
+  - protocol: filesystem
+    native_action: CREATE_FILE
+    mapped_capability: CREATE_DEPOSIT
+    d4_hint: 0.40
+    ambiguities:
+      - auto-generated temporary files can be legitimate
+    notes: legitimate automation remains create capability
+    status: candidate
+
+  - protocol: filesystem
+    native_action: WRITE_FILE
+    mapped_capability: MODIFY_WRITE
+    d4_hint: 0.60
+    ambiguities:
+      - benign maintenance write
+    notes: benign write remains modify capability
+    status: candidate
+
+  - protocol: filesystem
+    native_action: DELETE_FILE
+    mapped_capability: DELETE_STRONG_ALTER
+    d4_hint: 0.80
+    ambiguities:
+      - legitimate retention cleanup
+    notes: legitimate deletion remains delete/strong alter capability
+    status: candidate
+
+  - protocol: system_command
+    native_action: EXECUTE_PROCESS
+    mapped_capability: CONTROL_EXECUTE
+    d4_hint: 1.00
+    ambiguities:
+      - normal administrative execution
+    notes: classify by effective execution control on target
+    status: candidate
+
+  - protocol: dns
+    native_action: QUERY
+    mapped_capability: OBSERVE_READ
+    d4_hint: 0.20
+    ambiguities:
+      - high-volume lookup patterns may be suspicious but remain read capability
+    notes: volume alone does not change capability class
+    status: candidate
+
+  - protocol: dns
+    native_action: UPDATE_RECORD
+    mapped_capability: MODIFY_WRITE
+    d4_hint: 0.60
+    ambiguities:
+      - expected infra maintenance updates
+    notes: map on state modification effect
+    status: candidate
+
+  - protocol: authz
+    native_action: GRANT_PERMISSION
+    mapped_capability: CONTROL_EXECUTE
+    d4_hint: 1.00
+    ambiguities:
+      - expected maintenance rights changes
+    notes: classify by effective control gain, not verb label
+    status: candidate
+
+  - protocol: network
+    native_action: OPEN_CONNECTION
+    mapped_capability: OBSERVE_READ
+    d4_hint: 0.20
+    ambiguities:
+      - may be precursor to control actions depending on subsequent effects
+    notes: initial connect alone is not execution capability
+    status: candidate
+
+  - protocol: network
+    native_action: RECONFIGURE_ROUTE
+    mapped_capability: CONTROL_EXECUTE
+    d4_hint: 1.00
+    ambiguities:
+      - can be legitimate during network operations
+    notes: classify by control over traffic behavior
+    status: candidate
+
+required_ambiguous_cases:
+  - massive_read
+  - benign_write
+  - legitimate_deletion
+  - legitimate_automatic_creation
+  - normal_administrative_execution
+  - expected_maintenance_rights_change
+
+constraints:
+  - mapping_is_documentary_not_runtime
+  - no_dtw_logic
+  - no_mitre_detailed_logic
+  - no_alert_policy_logic
