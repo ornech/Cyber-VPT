@@ -8,65 +8,64 @@
 
 ## 1. Role of d5 in 5D vectorization
 
-`d5` represents the rarity of an observed fingerprint in the 5D vector and is
-bounded in `[0,1]`.
+`d5` represents the rarity of an observed fingerprint in the 5D vector.
+Its value is scalar and bounded in `[0,1]`.
 
-`d5` is one dimension among five and must not be treated as a standalone
-verdict.
+`d5` remains one dimension among five.
+It must not be interpreted as a standalone verdict.
 
-## 2. Normative minimal definition of observed fingerprint rarity
+## 2. Normative minimal definition
 
-Retained `v1` definition:
+For `v1`, the retained normative definition is:
 
 - `d5` measures rarity of an observed fingerprint relative to a documentary
   counting universe.
-- The full transverse definition and construction of `Fingerprint` are out of
+- Full transverse definition and construction of `Fingerprint` are out of
   scope for this specification.
 
-## 3. Retained counting universe
+## 3. Counting universe
 
-The counting universe is fixed for `v1` as:
+For `v1`, the counting universe is fixed as:
 
 - by source family or protocol.
 
-Rarity is always interpreted relative to that retained universe.
+Rarity must always be interpreted relative to that universe.
 
-## 4. Retained counting granularity
+## 4. Counting granularity
 
-The counting granularity is fixed for `v1` as:
+For `v1`, counting granularity is fixed as:
 
 - observed action occurrence.
 
-## 5. Normative treatment of `never_seen`
+## 5. Treatment of `never_seen`
 
-For `v1`, `never_seen` is represented as the maximum value of the scalar rarity
-continuum in `[0,1]`.
+For `v1`, `never_seen` is represented by the maximum value of the scalar
+rarity continuum in `[0,1]`.
 
 No hidden flag, side channel, or out-of-range state is introduced.
 
-## 6. Canonical ordinal projection in `[0,1]`
+## 6. Canonical projection
 
-The retained projection is:
+The canonical retained projection is:
 
 - ordinal documentary projection with fixed anchors.
 
-This specification defines an ordinal documentary class mapping, bounded in
-`[0,1]`, without imposing a runtime estimator law.
+This defines a bounded documentary mapping in `[0,1]`.
+It does not impose a runtime estimator law.
 
-## 7. Semantic input/MITRE symmetry rule
+## 7. Input / MITRE symmetry
 
 For `d5`, retained symmetry is semantic and documentary:
 
-- observed input side and MITRE side must use the same documentary rarity
-  vocabulary and correspondence table;
+- input and MITRE must use the same rarity vocabulary and class table,
 - this does not require empirical frequency symmetry between input and MITRE.
 
 ## 8. Interpretation limits
 
 Methodological limits for `v1`:
 
-- d5 alone is not sufficient to conclude an attack.
-- Rarity can have legitimate causes of fingerprint renewal, including:
+- `d5` alone is not sufficient to conclude an attack,
+- rarity can have legitimate fingerprint renewal causes, including:
   - browser change,
   - system update,
   - legitimate new equipment,
@@ -74,7 +73,7 @@ Methodological limits for `v1`:
 
 ## 9. What d5 does not measure
 
-d5 does not measure:
+`d5` does not measure:
 
 - attacker intent,
 - legal legitimacy,
@@ -82,18 +81,18 @@ d5 does not measure:
 - attack certainty,
 - alert policy decisions.
 
-## 10. Elements explicitly out of v1
+## 10. Out of v1
 
-The following are intentionally out of `v1`:
+The following items are intentionally out of `v1`:
 
 - temporal horizon policy,
 - forgetting/aging policy,
 - runtime estimator selection,
 - implementation and execution behavior.
 
-## 11. Traceability link to `rarity_projection.v1.yaml`
+## 11. YAML traceability
 
-The authoritative documentary table for ordinal classes, fixed anchors,
-`never_seen` policy, and semantic input/MITRE correspondence is versioned in:
+The authoritative documentary table for classes, anchors, `never_seen` policy,
+and semantic input/MITRE correspondence is versioned in:
 
 `references/d5_rarity/rarity_projection.v1.yaml`
