@@ -135,3 +135,55 @@ nouvelle version de fichier.
   réécriture silencieuse de `v1`.
 - Les évolutions d'implémentation éventuelles resteront traitées dans une issue
   distincte.
+
+## D-004 — Spécification fermée de d2 entropie (issue #5)
+
+**Date :** 2026-03-29
+**Statut :** acceptée
+
+### Contexte
+
+La dimension `d2` était décrite comme une entropie du `payload`, mais cette
+formulation restait trop ouverte : elle ne fixait ni les champs retenus, ni la
+règle de non-calculabilité, ni le traitement documentaire des contenus chiffrés,
+compressés ou encodés.
+
+### Décision
+
+`d2` est désormais défini comme l'entropie de Shannon normalisée d'une
+concaténation ordonnée de champs explicitement nommés par type d'événement ou
+de source.
+
+- Formule canonique : `d2 = H(payload_bytes) / 8`.
+- `payload_bytes` est construit uniquement à partir de champs observés en clair
+  dans la source.
+- Si le contenu utile n'est pas observable ou reste chiffré dans la source,
+  `d2` est **non calculable**.
+- Aucun décodage implicite, aucune décompression implicite et aucun
+  déchiffrement implicite ne sont autorisés.
+- Pour HTTP requête, `methode` est explicitement exclue ; seuls `cible`,
+  `query_string` et `body` peuvent entrer dans `payload_bytes`.
+- Pour DNS, le choix est fermé sur `query_name`. `record_type` est explicitement
+  exclu en tant que champ structurel.
+- Pour l'événement applicatif générique, seuls `message`, `body`, `content` et
+  `payload` sont autorisés. Tout autre champ est exclu tant qu'il n'est pas
+  explicitement ajouté au tableau normatif.
+
+### Alternatives rejetées
+
+- Raisonner sur une notion vague de « contenu exploitable observé » : rejeté,
+  car non déterministe.
+- Définir `d2` protocole par protocole sans s'appuyer sur les champs réellement
+  observables dans la source : rejeté.
+- Inclure des champs structurels comme `methode` HTTP ou `record_type` DNS dans
+  le contenu retenu : rejeté.
+- Autoriser un décodage, une décompression ou un déchiffrement implicites :
+  rejeté.
+
+### Conséquences
+
+- `d2` devient une dimension documentaire déterministe et traçable.
+- Les sources qui ne fournissent pas de contenu clair produisent un état
+  « non calculable » au lieu d'un score construit sur une base implicite.
+- Toute extension future des champs autorisés devra être explicitement ajoutée à
+  la table normative, et non introduite par analogie.

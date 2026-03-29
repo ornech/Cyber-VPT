@@ -37,9 +37,9 @@
 - [ ] Associer chaque poids à une justification technique.
 
 ### 2.2 — d2 entropie
-- [ ] Figer la formule retenue.
-- [ ] Définir précisément ce qui entre dans `payload` selon le protocole.
-- [ ] Documenter les limites : chiffrement légitime, compression, données binaires.
+- [x] Figer la formule retenue.
+- [x] Définir précisément ce qui entre dans `payload` selon le type d'événement ou de source.
+- [x] Documenter les limites : chiffrement légitime, compression, données binaires.
 
 ### 2.3 — d3 dynamique temporelle
 - [ ] Choisir la fenêtre de calcul ou la méthode basée sur `Δt`.
